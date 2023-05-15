@@ -1,15 +1,42 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity, Text, Image, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
 import colors from "../colors";
 import { Entypo } from "@expo/vector-icons";
-import MapView from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
 
 // const catImageUrl =
 //   "https://i.guim.co.uk/img/media/26392d05302e02f7bf4eb143bb84c8097d09144b/446_167_3683_2210/master/3683.jpg?width=1200&height=1200&quality=85&auto=format&fit=crop&s=49ed3252c0b2ffb49cf8b508892e452d";
 
 const HomeScreen = () => {
+  const [location, setLocation] = useState();
+
+  useEffect(() => {
+    const getPermission = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Please grant location permission");
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+
+      console.log("Location:");
+      console.log(location);
+    };
+    getPermission();
+  }, []);
+
+  let text = "Waiting..";
+  if ("Permission to access location was denied") {
+    text = "Permission to access location was denied";
+  } else if (location) {
+    text = JSON.stringify(location);
+  }
+
   const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({
@@ -36,7 +63,10 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} />
+      {/* <Text>{currentLocation}</Text> */}
+      <MapView style={styles.map}>
+        <Marker coordinate={location} />
+      </MapView>
       <View style={styles.container2}>
         <TouchableOpacity
           onPress={() => navigation.navigate("Chat")}
