@@ -1,41 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, Text, Image, StyleSheet } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  Image,
+  StyleSheet,
+  TextInput,
+} from "react-native";
+import colors from "../colors";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
-import colors from "../colors";
 import { Entypo } from "@expo/vector-icons";
-import MapView, { Marker } from "react-native-maps";
+import { AntDesign } from "@expo/vector-icons";
+import { signOut } from "firebase/auth";
+import { auth, database } from "../database/firebase";
+import { db } from "../database/firebase";
+import { ref, onValue } from "firebase/database";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-
-// const catImageUrl =
-//   "https://i.guim.co.uk/img/media/26392d05302e02f7bf4eb143bb84c8097d09144b/446_167_3683_2210/master/3683.jpg?width=1200&height=1200&quality=85&auto=format&fit=crop&s=49ed3252c0b2ffb49cf8b508892e452d";
+import database from "@react-native-firebase/database";
+import firebase from "../database/firebase";
 
 const HomeScreen = () => {
-  const [location, setLocation] = useState();
+  const [currentLocation, setCurrentLocation] = useState();
+  const [errorMsg, setErrorMsg] = useState();
+  const [ambulanceLocations, setAmbulanceLocations] = useState([]);
 
   useEffect(() => {
-    const getPermission = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("Please grant location permission");
-        setErrorMsg("Permission to access location was denied");
-        return;
+    const databaseRef = ref(db, "ambulances/");
+    onValue(databaseRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const ambulanceList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setAmbulanceLocations(ambulanceList);
+        console.log(ambulanceList);
       }
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-
-      console.log("Location:");
-      console.log(location);
-    };
-    getPermission();
+    });
   }, []);
-
-  let text = "Waiting..";
-  if ("Permission to access location was denied") {
-    text = "Permission to access location was denied";
-  } else if (location) {
-    text = JSON.stringify(location);
-  }
 
   const navigation = useNavigation();
   useEffect(() => {
@@ -46,27 +50,147 @@ const HomeScreen = () => {
           size={24}
           color={colors.gray}
           style={{ marginLeft: 15 }}
-        />
+        ></FontAwesome>
       ),
-      // headerRight: () => (
-      //   <Image
-      //     source={{ uri: catImageUrl }}
-      //     style={{
-      //       width: 40,
-      //       height: 40,
-      //       marginRight: 15,
-      //     }}
-      //   />
-      // ),
+      headerRight: () => (
+        <TouchableOpacity
+          style={{
+            marginRight: 10,
+          }}
+          onPress={onSignOut}
+        >
+          <AntDesign
+            name="logout"
+            size={24}
+            color={colors.gray}
+            style={{ marginRight: 10 }}
+          />
+        </TouchableOpacity>
+      ),
     });
   }, [navigation]);
 
+  const onSignOut = () => {
+    signOut(auth).catch((error) => console.log("Error logging out: ", error));
+  };
+
+  // useEffect(() => {
+  //   // Retrieve ambulance locations from Firebase and set up real-time updates
+  //   const unsubscribe = firebase
+  //     .database()
+  //     .ref("ambulances")
+  //     .on("value", (snapshot) => {
+  //       const locations = snapshot.val();
+  //       if (locations) {
+  //         const ambulanceList = Object.keys(locations).map((key) => ({
+  //           id: key,
+  //           ...locations[key],
+  //         }));
+  //         setAmbulanceLocations(ambulanceList);
+  //       }
+  //     });
+
+  //   // Clean up the listener when the component unmounts
+  //   return () => {
+  //     unsubscribe();
+  //   };
+  // }, []);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        console.log("Please grant location permission");
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+      // let location = await Location.getCurrentPositionAsync({});
+      let yourCurrentLocation = await Location.getCurrentPositionAsync({});
+      setCurrentLocation(yourCurrentLocation);
+      saveCurrentLocation(
+        yourCurrentLocation.coords.latitude,
+        yourCurrentLocation.coords.longitude
+      );
+
+      console.log("Location:");
+      console.log(currentLocation);
+    })();
+  }, []);
+
+  // useEffect(() => {
+  //   const databaseRef = firebase.database().ref("locations");
+  //   databaseRef.on("value", (snapshot) => {
+  //     const data = snapshot.val();
+  //     if (data) {
+  //       const locationsArray = Object.values(data);
+  //       setLocations(locationsArray);
+  //     }
+  //   });
+
+  //   return () => {
+  //     databaseRef.off("value");
+  //   };
+  // }, []);
+
+  // const saveLocation = (latitude, longitude) => {
+  //   const databaseRef = firebase.database().ref("locations");
+  //   const locationRef = databaseRef.push();
+  //   locationRef.set({ latitude, longitude });
+  // };
+
+  // const handleSearchLocation = async () => {
+  //   let result = await Location.geocodeAsync(searchLocation);
+  //   if (result.length > 0) {
+  //     let location = result[0];
+  //     setLocation({
+  //       coords: {
+  //         latitude: location.latitude,
+  //         longitude: location.longitude,
+  //       },
+  //     });
+  //   }
+  // };
+  // const handleDirections = () => {
+  //   if (location && directions) {
+  //     const { latitude, longitude } = location.coords;
+  //     IntentLauncher.startActivityAsync(IntentLauncher.ACTION_VIEW, {
+  //       data: `http://maps.google.com/maps?saddr=${latitude},${longitude}&daddr=${directions.latitude},${directions.longitude}`,
+  //     });
+  //   }
+  // };
+
   return (
     <View style={styles.container}>
-      {/* <Text>{currentLocation}</Text> */}
-      <MapView style={styles.map}>
-        <Marker coordinate={location} />
-      </MapView>
+      {currentLocation && (
+        <>
+          <MapView
+            style={styles.map}
+            showsUserLocation={true}
+            provider={PROVIDER_GOOGLE}
+            followsUserLocation={true}
+            initialRegion={{
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+          >
+            {ambulanceLocations.map((ambulance) => (
+              <Marker
+                key={ambulance.id}
+                coordinate={{
+                  latitude: ambulance.latitude,
+                  longitude: ambulance.longitude,
+                }}
+                title="Ambulance"
+                description="Ambulance location"
+              />
+            ))}
+          </MapView>
+        </>
+      )}
+
       <View style={styles.container2}>
         <TouchableOpacity
           onPress={() => navigation.navigate("Chat")}
@@ -88,11 +212,14 @@ const styles = StyleSheet.create({
     // alignItems: "center",
     justifyContent: "center",
   },
+  map: {
+    width: "100%",
+    height: "100%",
+  },
+
   container2: {
-    // flex: 1,
     justifyContent: "flex-end",
     alignItems: "flex-end",
-    // backgroundColor: "#fff",
   },
   chatButton: {
     backgroundColor: colors.primary,
@@ -111,8 +238,30 @@ const styles = StyleSheet.create({
     marginRight: 20,
     marginBottom: 50,
   },
-  map: {
-    width: "100%",
-    height: "100%",
+  searchContainer: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginRight: 10,
+    paddingHorizontal: 10,
+  },
+  searchButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "blue",
+    borderRadius: 5,
+  },
+  searchButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
