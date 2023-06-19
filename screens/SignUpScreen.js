@@ -11,19 +11,67 @@ import {
   StatusBar,
   Alert,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../database/firebase";
-
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set } from "firebase/database";
+import { firebaseConfig } from "../database/firebase";
+import { ScrollView } from "react-native-gesture-handler";
 const backImage = require("../images/registration.png");
+// import { auth, db } from "../database/firebase";
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [city, setCity] = useState("");
+  const [hospital, setHospital] = useState("");
+  const [ambulanceNumber, setAmbulanceNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
   const onHandleSignup = () => {
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
     if (email !== "" && password !== "") {
       createUserWithEmailAndPassword(auth, email, password)
-        .then(() => console.log("Signup success"))
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log(user);
+
+          onAuthStateChanged(auth, (user) => {
+            if (user) {
+              const uid = user.uid;
+              set(ref(db, `users/${uid}`), {
+                fullName: fullName,
+                email: email,
+                username: username,
+                city: city,
+                phoneNumber: phoneNumber,
+                hospital: hospital,
+                ambulanceNumber: ambulanceNumber,
+              })
+                .then(() => {
+                  console.log("Data added with succes!");
+                  console.log(user);
+                })
+                .catch((error) => {
+                  console.error(error);
+                });
+            }
+          });
+        })
         .catch((err) => Alert.alert("Login error", err.message));
     }
   };
@@ -34,26 +82,72 @@ export default function SignUpScreen({ navigation }) {
       <View style={styles.whiteSheet} />
       <SafeAreaView style={styles.form}>
         <Text style={styles.title}>Sign Up</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoFocus={true}
-          value={email}
-          onChangeText={(text) => setEmail(text)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter password"
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry={true}
-          textContentType="password"
-          value={password}
-          onChangeText={(text) => setPassword(text)}
-        />
+        <ScrollView>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoFocus={true}
+            value={email}
+            onChangeText={(text) => setEmail(text)}
+          />
+          <TextInput
+            placeholder="Username"
+            value={username}
+            onChangeText={(text) => setUsername(text)}
+            style={styles.input}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry={true}
+            textContentType="password"
+            value={password}
+            onChangeText={(text) => setPassword(text)}
+          />
+          <TextInput
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={(text) => setConfirmPassword(text)}
+            secureTextEntry
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="Full Name"
+            value={fullName}
+            onChangeText={(text) => setFullName(text)}
+            style={styles.input}
+          />
+
+          <TextInput
+            placeholder="City"
+            value={city}
+            onChangeText={(text) => setCity(text)}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="Hospital"
+            value={hospital}
+            onChangeText={(text) => setHospital(text)}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="Phone Number"
+            onChangeText={setPhoneNumber}
+            value={phoneNumber}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="Ambulance Number"
+            value={ambulanceNumber}
+            onChangeText={(text) => setAmbulanceNumber(text)}
+            style={styles.input}
+          />
+        </ScrollView>
         <TouchableOpacity style={styles.button} onPress={onHandleSignup}>
           <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 18 }}>
             {" "}

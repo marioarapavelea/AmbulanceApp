@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../database/firebase";
+import { useNavigation } from "@react-navigation/native";
 const backImage = require("../images/ambulanta.jpg");
 
 export default function LoginScreen({ navigation }) {

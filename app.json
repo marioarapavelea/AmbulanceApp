@@ -15,16 +15,31 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY"
+      },
+      "bundleIdentifier": "com.utapavelea.AmbulanceApp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY"
+        }
+      },
+      "package": "com.utapavelea.AmbulanceApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f2f0618d-55c8-4357-8ada-75828830b7c8"
+      }
     }
   }
 }

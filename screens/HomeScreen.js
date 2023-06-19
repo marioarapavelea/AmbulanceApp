@@ -1,55 +1,165 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  View,
-  TouchableOpacity,
-  Text,
-  Image,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Image,
   TextInput,
+  Button,
 } from "react-native";
-import colors from "../colors";
+import MapView, {
+  Marker,
+  PROVIDER_GOOGLE,
+  animateToRegion,
+  Callout,
+} from "react-native-maps";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { getAuth } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set } from "firebase/database";
+import {
+  collection,
+  addDoc,
+  orderBy,
+  query,
+  onSnapshot,
+  getFirestore,
+  QuerySnapshot,
+  getDocs,
+  where,
+} from "firebase/firestore";
+import { firebaseConfig } from "../database/firebase";
+import * as Location from "expo-location";
+import Geocoder from "react-native-geocoding";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Entypo } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
-import { auth, database } from "../database/firebase";
-import { db } from "../database/firebase";
-import { ref, onValue } from "firebase/database";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import * as Location from "expo-location";
-import database from "@react-native-firebase/database";
-import firebase from "../database/firebase";
+import colors from "../colors";
 
-const HomeScreen = () => {
+const apiKey = "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getFirestore(app);
+const db = getDatabase(app);
+
+//Add some locations for ambulances
+const addLocationToFirestore = async (
+  ambulanceNumber,
+  latitude,
+  longitude,
+  status
+) => {
+  const locationsRef = collection(database, "locations");
+  // Check if the location already exists
+  const querySnapshot = await getDocs(
+    query(locationsRef, where("ambulanceNumber", "==", ambulanceNumber))
+  );
+
+  if (querySnapshot.empty) {
+    // Location doesn't exist, add it to Firestore
+    await addDoc(locationsRef, {
+      ambulanceNumber: ambulanceNumber,
+      latitude: latitude,
+      longitude: longitude,
+      status: status,
+    });
+    console.log("Location added to Firestore");
+  } else {
+    console.log("Location already exists in Firestore");
+  }
+};
+
+addLocationToFirestore("A001", 46.770439, 23.591423, "free");
+addLocationToFirestore("A002", 46.7609689, 23.5648915, "busy");
+addLocationToFirestore("A003", 46.763968, 23.563625, "busy");
+addLocationToFirestore("A004", 49.763968, 25.563625, "free");
+addLocationToFirestore("A005", 46.758798, 23.551193, "free");
+addLocationToFirestore("A006", 46.762507, 23.557183, "free");
+
+//Get the location
+const getLocation = () => {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (data) => resolve(data.coords),
+      (err) => reject(err)
+    );
+  });
+};
+
+const geocodeLocationByName = (locationName) => {
+  return new Promise((resolve, reject) => {
+    Geocoder.from(locationName)
+      .then((json) => {
+        const addressComponent = json.results[0].address_components[0];
+        resolve(addressComponent);
+      })
+      .catch((error) => reject(error));
+  });
+};
+
+const geocodeLocationByCoords = (lat, long) => {
+  return new Promise((resolve, reject) => {
+    Geocoder.from(lat, long)
+      .then((json) => {
+        const addressComponent = json.results[0].address_components[0];
+        resolve(addressComponent);
+      })
+      .catch((error) => reject(error));
+  });
+};
+
+const HomeScreen = (props) => {
+  const navigation = useNavigation();
+
   const [currentLocation, setCurrentLocation] = useState();
   const [errorMsg, setErrorMsg] = useState();
-  const [ambulanceLocations, setAmbulanceLocations] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [pinPosition, setPinPosition] = useState(region);
+  const mapRef = useRef(null);
+  const [region, setRegion] = useState({
+    latitude: 46.770439,
+    longitude: 23.591423,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
-  useEffect(() => {
-    const databaseRef = ref(db, "ambulances/");
-    onValue(databaseRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const ambulanceList = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setAmbulanceLocations(ambulanceList);
-        console.log(ambulanceList);
-      }
+  //Ambulances simulation
+  const fetchLocations = async () => {
+    const locationsRef = collection(database, "locations");
+    onSnapshot(locationsRef, (snapshot) => {
+      const locationsData = snapshot.docs.map((doc) => doc.data());
+      setLocations(locationsData);
     });
+  };
+  useEffect(() => {
+    fetchLocations();
   }, []);
 
-  const navigation = useNavigation();
+  //Zoom to location
+  const zoomToLocation = (latitude, longitude) => {
+    const region = {
+      latitude,
+      longitude,
+      latitudeDelta: 0.001,
+      longitudeDelta: 0.001,
+    };
+    mapRef.current.animateToRegion(region, 1000); // Adjust the animation duration as needed
+  };
+
+  //Navigation
   useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <FontAwesome
-          name="search"
+          name="user"
           size={24}
           color={colors.gray}
           style={{ marginLeft: 15 }}
+          onPress={() => navigation.navigate("Profile")}
         ></FontAwesome>
       ),
       headerRight: () => (
@@ -74,28 +184,6 @@ const HomeScreen = () => {
     signOut(auth).catch((error) => console.log("Error logging out: ", error));
   };
 
-  // useEffect(() => {
-  //   // Retrieve ambulance locations from Firebase and set up real-time updates
-  //   const unsubscribe = firebase
-  //     .database()
-  //     .ref("ambulances")
-  //     .on("value", (snapshot) => {
-  //       const locations = snapshot.val();
-  //       if (locations) {
-  //         const ambulanceList = Object.keys(locations).map((key) => ({
-  //           id: key,
-  //           ...locations[key],
-  //         }));
-  //         setAmbulanceLocations(ambulanceList);
-  //       }
-  //     });
-
-  //   // Clean up the listener when the component unmounts
-  //   return () => {
-  //     unsubscribe();
-  //   };
-  // }, []);
-
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -105,100 +193,187 @@ const HomeScreen = () => {
         setErrorMsg("Permission to access location was denied");
         return;
       }
-      // let location = await Location.getCurrentPositionAsync({});
+
       let yourCurrentLocation = await Location.getCurrentPositionAsync({});
       setCurrentLocation(yourCurrentLocation);
-      saveCurrentLocation(
-        yourCurrentLocation.coords.latitude,
-        yourCurrentLocation.coords.longitude
-      );
 
       console.log("Location:");
       console.log(currentLocation);
+      setPinPosition({
+        latitude: yourCurrentLocation.coords.latitude,
+        longitude: yourCurrentLocation.coords.longitude,
+      });
     })();
   }, []);
 
-  // useEffect(() => {
-  //   const databaseRef = firebase.database().ref("locations");
-  //   databaseRef.on("value", (snapshot) => {
-  //     const data = snapshot.val();
-  //     if (data) {
-  //       const locationsArray = Object.values(data);
-  //       setLocations(locationsArray);
-  //     }
-  //   });
+  // Search for a location
 
-  //   return () => {
-  //     databaseRef.off("value");
-  //   };
-  // }, []);
+  const getInitialState = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Location permission not granted");
+        return;
+      }
 
-  // const saveLocation = (latitude, longitude) => {
-  //   const databaseRef = firebase.database().ref("locations");
-  //   const locationRef = databaseRef.push();
-  //   locationRef.set({ latitude, longitude });
-  // };
+      const location = await Location.getCurrentPositionAsync({});
+      console.log(location);
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.003,
+        longitudeDelta: 0.003,
+      });
+    } catch (error) {
+      console.log("Error getting current location:", error);
+    }
+  };
 
-  // const handleSearchLocation = async () => {
-  //   let result = await Location.geocodeAsync(searchLocation);
-  //   if (result.length > 0) {
-  //     let location = result[0];
-  //     setLocation({
-  //       coords: {
-  //         latitude: location.latitude,
-  //         longitude: location.longitude,
-  //       },
-  //     });
-  //   }
-  // };
-  // const handleDirections = () => {
-  //   if (location && directions) {
-  //     const { latitude, longitude } = location.coords;
-  //     IntentLauncher.startActivityAsync(IntentLauncher.ACTION_VIEW, {
-  //       data: `http://maps.google.com/maps?saddr=${latitude},${longitude}&daddr=${directions.latitude},${directions.longitude}`,
-  //     });
-  //   }
-  // };
+  const getCoordsFromName = async (loc) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${loc}&key=${apiKey}`
+      );
+      const data = await response.json();
+      const { lat, lng } = data.results[0].geometry.location;
+      setRegion({
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+      setPinPosition({ latitude: lat, longitude: lng });
+      mapRef.current.animateToRegion({
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    } catch (error) {
+      console.log("Error retrieving location coordinates:", error);
+    }
+  };
+
+  const onMapRegionChange = (region) => {
+    setRegion(region);
+    // setPinPosition(region);
+  };
 
   return (
     <View style={styles.container}>
-      {currentLocation && (
-        <>
+      <View style={styles.containerSearch}>
+        <GooglePlacesAutocomplete
+          placeholder="Search location"
+          minLength={2}
+          autoFocus={true}
+          returnKeyType={"search"}
+          listViewDisplayed={TextInput.length > 0}
+          fetchDetails={true}
+          onPress={(data, details = null) => {
+            // getCoordsFromName(details.geometry.location);
+            getCoordsFromName(details.formatted_address);
+          }}
+          query={{
+            key: apiKey,
+            language: "en",
+          }}
+          nearbyPlacesAPI="GooglePlacesSearch"
+          debounce={200}
+          styles={{
+            container: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1, // Adjust the zIndex value as needed
+            },
+            textInputContainer: {
+              backgroundColor: "rgba(0,0,0,0)",
+              borderTopWidth: 0,
+              borderBottomWidth: 0,
+            },
+            textInput: {
+              marginLeft: 0,
+              marginRight: 0,
+              height: 38,
+              color: "#5d5d5d",
+              fontSize: 16,
+            },
+            listView: {
+              backgroundColor: "transparent", // Set the background color of the suggestions container to transparent
+            },
+            predefinedPlacesDescription: {
+              color: "#1faadb",
+            },
+          }}
+        />
+      </View>
+      {/* locations.length > 0 && region.latitude && */}
+      {region && (
+        <View style={styles.container}>
           <MapView
+            ref={mapRef}
             style={styles.map}
+            region={region}
             showsUserLocation={true}
-            provider={PROVIDER_GOOGLE}
-            followsUserLocation={true}
-            initialRegion={{
-              latitude: currentLocation.coords.latitude,
-              longitude: currentLocation.coords.longitude,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
+            // followsUserLocation={true}
+            onRegionChange={onMapRegionChange}
+            scrollEnabled={true}
+            zoomEnabled={true}
+            // provider={PROVIDER_GOOGLE}
           >
-            {ambulanceLocations.map((ambulance) => (
+            {/* <Marker coordinate={region} /> */}
+            {pinPosition && (
               <Marker
-                key={ambulance.id}
+                coordinate={pinPosition}
+                draggable
+                onDragEnd={(e) => {
+                  const { latitude, longitude } = e.nativeEvent.coordinate;
+                  setPinPosition({
+                    latitude,
+                    longitude,
+                    latitudeDelta: 0.003,
+                    longitudeDelta: 0.003,
+                  });
+                }}
+              />
+            )}
+
+            {locations.map((ambulance, index) => (
+              <Marker
+                key={index}
                 coordinate={{
                   latitude: ambulance.latitude,
                   longitude: ambulance.longitude,
                 }}
-                title="Ambulance"
-                description="Ambulance location"
-              />
+                onPress={() =>
+                  zoomToLocation(ambulance.latitude, ambulance.longitude)
+                }
+              >
+                <FontAwesome
+                  name="ambulance"
+                  size={24}
+                  color={ambulance.status === "free" ? "green" : "red"}
+                />
+
+                <Callout style={styles.calloutContainer}>
+                  <Text style={styles.ambulanceNumber}>
+                    Ambulance Number: {ambulance.ambulanceNumber}
+                  </Text>
+                </Callout>
+              </Marker>
             ))}
           </MapView>
-        </>
+          <View style={styles.container2}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Chat")}
+              style={styles.chatButton}
+            >
+              <Entypo name="chat" size={24} color={colors.lightGray} />
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
-
-      <View style={styles.container2}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Chat")}
-          style={styles.chatButton}
-        >
-          <Entypo name="chat" size={24} color={colors.lightGray} />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -206,20 +381,24 @@ const HomeScreen = () => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    // alignItems: "center",
-    justifyContent: "center",
+  container: { flex: 1 },
+  containerSearch: {
+    zIndex: 1,
   },
   map: {
-    width: "100%",
-    height: "100%",
+    flex: 1,
   },
-
   container2: {
     justifyContent: "flex-end",
-    alignItems: "flex-end",
+    flexDirection: "row",
+    height: 55,
+
+    backgroundColor: "transparent",
+    zIndex: 2,
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    margin: 16,
   },
   chatButton: {
     backgroundColor: colors.primary,
@@ -238,30 +417,10 @@ const styles = StyleSheet.create({
     marginRight: 20,
     marginBottom: 50,
   },
-  searchContainer: {
-    position: "absolute",
-    top: 20,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    alignItems: "center",
+  calloutContainer: {
+    width: 200,
   },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginRight: 10,
-    paddingHorizontal: 10,
-  },
-  searchButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "blue",
-    borderRadius: 5,
-  },
-  searchButtonText: {
-    color: "white",
+  ambulanceNumber: {
     fontWeight: "bold",
   },
 });

@@ -8,6 +8,14 @@ import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/SignUpScreen";
 import ChatScreen from "./screens/ChatScreen";
 import HomeScreen from "./screens/HomeScreen";
+import ProfileScreen from "./screens/ProfileScreen";
+import SettingsScreen from "./screens/SettingsScreen";
+import ChangePasswordScreen from "./screens/ChangePasswordScreen";
+import DeleteAccountScreen from "./screens/DeleteAccountScreen";
+import NotificationsScreen from "./screens/NotificationsScreen";
+import * as TaskManager from "expo-task-manager";
+import { registerRootComponent } from "expo";
+// import * as Font from "expo-font";
 
 const Stack = createStackNavigator();
 const AuthenticatedUserContext = createContext({});
@@ -24,8 +32,30 @@ const AuthenticatedUserProvider = ({ children }) => {
 function ChatStack() {
   return (
     <Stack.Navigator defaultScreenOptions={HomeScreen}>
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: "Ambulance App",
+          headerStyle: {
+            backgroundColor: "#fff",
+          },
+          headerTintColor: "orange",
+          headerTitleStyle: {
+            fontWeight: "bold",
+            fontSize: 25,
+            // fontFamily: "DroidSerif-Regular",
+
+            // fontStyle: "italic",
+          },
+        }}
+      />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Change Password" component={ChangePasswordScreen} />
+      <Stack.Screen name="Delete Account" component={DeleteAccountScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }
@@ -82,3 +112,6 @@ export default function App() {
     </AuthenticatedUserProvider>
   );
 }
+
+registerRootComponent(App);
+TaskManager.defineTask("MapPage", HomeScreen);
