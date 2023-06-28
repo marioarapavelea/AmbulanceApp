@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     width: 75,
     height: 75,
-    borderRadius: "38%",
+    borderRadius: 38,
     overflow: "hidden",
     textAlign: "center",
     lineHeight: 100,
@@ -303,13 +303,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   button: {
-    // backgroundColor: "#f57c00",
-    // height: 58,
-    // width: 60,
-    // borderRadius: 10,
-    // justifyContent: "center",
-    // alignItems: "center",
-    // marginTop: 40,
     paddingHorizontal: 20,
 
     backgroundColor: "#f57c00",

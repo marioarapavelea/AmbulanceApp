@@ -4,7 +4,7 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
-import { TouchableOpacity, Text } from "react-native";
+import { TouchableOpacity, Text, Alert } from "react-native";
 import { GiftedChat, Bubble } from "react-native-gifted-chat";
 import {
   collection,
@@ -16,17 +16,18 @@ import {
 import { signOut } from "firebase/auth";
 import { auth, database, db } from "../database/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, runTransaction } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import { AntDesign } from "@expo/vector-icons";
 import colors from "../colors.js";
-import { registerForPushNotificationsAsync } from "expo-notifications";
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState([]);
   const navigation = useNavigation();
   const [username, setUsername] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstUserAccepted, setFirstUserAccepted] = useState(false);
+  const [firstUserUsername, setFirstUserUsername] = useState("");
+
   const onSignOut = () => {
     signOut(auth).catch((error) => console.log("Error logging out: ", error));
   };
@@ -62,13 +63,6 @@ export default function ChatScreen() {
           const usernameValue = snapshot.val();
           setUsername(usernameValue);
         });
-
-        // Retrieve city
-        const fullNameRef = ref(db, `users/${uid}/fullName`);
-        onValue(fullName, (snapshot) => {
-          const fullNameValue = snapshot.val();
-          setFullName(fullNameValue);
-        });
       }
     });
 
@@ -91,41 +85,81 @@ export default function ChatScreen() {
           createdAt: doc.data().createdAt.toDate(),
           text: doc.data().text,
           user: doc.data().user,
-          // user: {
-          //   _id: auth.currentUser.uid,
-          //   name: username,
-          // },
         }))
+      );
+
+      const latestMessage = querySnapshot.docs[0].data();
+      const { _id, user } = latestMessage;
+
+      // Display an alert with the received message and options to accept/decline
+      Alert.alert(
+        "New Message",
+        latestMessage.text,
+        [
+          {
+            text: "Accept",
+            onPress: () => handleAccept(_id, user),
+          },
+          {
+            text: "Decline",
+            onPress: () => handleDecline(_id),
+            style: "cancel",
+          },
+        ],
+        { cancelable: false }
       );
     });
     return unsubscribe;
   }, []);
 
-  // const renderBubble = (props) => {
-  //   const { currentMessage } = props;
+  const handleAccept = (messageId, user) => {
+    if (!firstUserAccepted) {
+      setFirstUserAccepted(true);
 
-  //   // Check if the current message has a user object and name property
-  //   const isUserMessage =
-  //     currentMessage.user && currentMessage.user._id === auth.currentUser.uid;
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const uid = currentUser.uid;
 
-  //   // Customizing the message bubble style for user and other messages
-  //   const bubbleStyle = {
-  //     left: {
-  //       backgroundColor: isUserMessage ? "#f0f0f0" : "#e5e5e5",
-  //     },
-  //     right: {
-  //       backgroundColor: isUserMessage ? "#dcf8c6" : "#ffffff",
-  //     },
-  //   };
+        // Retrieve username
+        const usernameRef = ref(db, `users/${uid}/username`);
+        onValue(usernameRef, (snapshot) => {
+          const usernameValue = snapshot.val();
+          setFirstUserUsername(usernameValue);
 
-  //   return <Bubble {...props} wrapperStyle={bubbleStyle} />;
-  // };
+          // Update the status of the first user to "busy" in the Realtime Database
+          const userStatusRef = ref(db, `users/${uid}/status`);
+          runTransaction(userStatusRef, (currentData) => {
+            if (currentData === "free") {
+              // Set the status to "busy" only if the current status is "free"
+              return "busy";
+            }
+            return currentData;
+          })
+            .then(() => {
+              console.log("First user status updated to busy");
+            })
+            .catch((error) => {
+              console.log("Error updating user status:", error);
+            });
+        });
+      }
+    }
+
+    // Handle the logic for accepting the message
+    console.log("Accepted message:", messageId);
+    console.log("First user username:", firstUserUsername);
+  };
+
+  const handleDecline = (messageId) => {
+    // Handle the logic for declining the message
+    console.log("Declined message:", messageId);
+  };
 
   const onSend = useCallback((messages = []) => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, messages)
     );
-    // setMessages([...messages, ...messages]);
+
     const { _id, createdAt, text, user } = messages[0];
     addDoc(collection(database, "chats"), {
       _id,
@@ -136,11 +170,6 @@ export default function ChatScreen() {
   }, []);
 
   return (
-    // <>
-    //   {messages.map(message => (
-    //     <Text key={message._id}>{message.text}</Text>
-    //   ))}
-    // </>
     <GiftedChat
       messages={messages}
       showAvatarForEveryMessage={false}
@@ -156,12 +185,10 @@ export default function ChatScreen() {
       renderUsernameOnMessage={true} // default is false
       user={{
         _id: auth?.currentUser?.email,
-        // avatar: "https://i.pravatar.cc/300",
         avatar:
           "https://cdn3.iconfinder.com/data/icons/vector-icons-6/96/256-512.png",
         name: username,
       }}
-      // renderBubble={renderBubble}
     />
   );
 }

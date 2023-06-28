@@ -38,6 +38,8 @@ import { Entypo } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
 import colors from "../colors";
+import MapViewDirections from "react-native-maps-directions";
+import axios from "axios";
 
 const apiKey = "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY";
 const app = initializeApp(firebaseConfig);
@@ -119,6 +121,11 @@ const HomeScreen = (props) => {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [pinPosition, setPinPosition] = useState(region);
+  const [routeDistance, setRouteDistance] = useState(null);
+  const [routeDuration, setRouteDuration] = useState(null);
+  const [distance, setDistance] = useState(null);
+  const [duration, setDuration] = useState(null);
+
   const mapRef = useRef(null);
   const [region, setRegion] = useState({
     latitude: 46.770439,
@@ -231,8 +238,11 @@ const HomeScreen = (props) => {
 
   const getCoordsFromName = async (loc) => {
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${loc}&key=${apiKey}`
+      // const response = await fetch(
+      //   `https://maps.googleapis.com/maps/api/geocode/json?address=${loc}&key=${apiKey}`
+      // );
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${currentLocation.coords.latitude},${currentLocation.coords.longitude}&destinations=${lat},${lng}&key=${apiKey}`
       );
       const data = await response.json();
       const { lat, lng } = data.results[0].geometry.location;
@@ -243,12 +253,24 @@ const HomeScreen = (props) => {
         longitudeDelta: 0.0421,
       });
       setPinPosition({ latitude: lat, longitude: lng });
+      // mapRef.current.animateToRegion({
+      //   latitude: lat,
+      //   longitude: lng,
+      //   latitudeDelta: 0.0922,
+      //   longitudeDelta: 0.0421,
+      // });
+      setSelectedLocation({ latitude: lat, longitude: lng }); // Set the selected location
       mapRef.current.animateToRegion({
         latitude: lat,
         longitude: lng,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
+
+      const { distance, duration } = response.data.rows[0].elements[0];
+
+      setDistance(distance.text);
+      setDuration(duration.text);
     } catch (error) {
       console.log("Error retrieving location coordinates:", error);
     }
@@ -363,7 +385,36 @@ const HomeScreen = (props) => {
                 </Callout>
               </Marker>
             ))}
+            {selectedLocation && (
+              <MapViewDirections
+                origin={{
+                  latitude: currentLocation.coords.latitude,
+                  longitude: currentLocation.coords.longitude,
+                }}
+                destination={{
+                  latitude: selectedLocation.latitude,
+                  longitude: selectedLocation.longitude,
+                }}
+                apikey={apiKey}
+                strokeWidth={3}
+                strokeColor="blue"
+                onReady={(result) => {
+                  setRouteDistance(result.distance);
+                  setRouteDuration(result.duration);
+                }}
+              />
+            )}
           </MapView>
+          <View style={styles.routeInfoContainer}>
+            {routeDistance && routeDuration && (
+              <Text>
+                Distance: {routeDistance.toFixed(2)} km
+                {"\n"}
+                Duration: {routeDuration.toFixed(0)} minutes
+              </Text>
+            )}
+          </View>
+
           <View style={styles.container2}>
             <TouchableOpacity
               onPress={() => navigation.navigate("Chat")}
@@ -422,5 +473,11 @@ const styles = StyleSheet.create({
   },
   ambulanceNumber: {
     fontWeight: "bold",
+  },
+  routeInfoContainer: {
+    backgroundColor: "white",
+    padding: 10,
+    margin: 10,
+    borderRadius: 5,
   },
 });
