@@ -442,6 +442,12 @@ const HomeScreen = (props) => {
             >
               <Entypo name="chat" size={24} color={colors.lightGray} />
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Notifications")}
+              style={styles.chatButton}
+            >
+              <Entypo name="notification" size={24} color={colors.lightGray} />
+            </TouchableOpacity>
           </View>
         </View>
       )}
