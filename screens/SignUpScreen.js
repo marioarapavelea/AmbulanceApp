@@ -78,7 +78,9 @@ export default function SignUpScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image source={backImage} style={styles.backImage} />
+      <View style={styles.imgContainer}>
+        <Image source={backImage} style={styles.backImage} />
+      </View>
       <View style={styles.whiteSheet} />
       <SafeAreaView style={styles.form}>
         <Text style={styles.title}>Sign Up</Text>
@@ -92,6 +94,12 @@ export default function SignUpScreen({ navigation }) {
             autoFocus={true}
             value={email}
             onChangeText={(text) => setEmail(text)}
+          />
+          <TextInput
+            placeholder="Full Name"
+            value={fullName}
+            onChangeText={(text) => setFullName(text)}
+            style={styles.input}
           />
           <TextInput
             placeholder="Username"
@@ -117,13 +125,6 @@ export default function SignUpScreen({ navigation }) {
             style={styles.input}
           />
           <TextInput
-            placeholder="Full Name"
-            value={fullName}
-            onChangeText={(text) => setFullName(text)}
-            style={styles.input}
-          />
-
-          <TextInput
             placeholder="City"
             value={city}
             onChangeText={(text) => setCity(text)}
@@ -142,7 +143,7 @@ export default function SignUpScreen({ navigation }) {
             style={styles.input}
           />
           <TextInput
-            placeholder="Ambulance Number"
+            placeholder="Ambulance Number (ex:A001)"
             value={ambulanceNumber}
             onChangeText={(text) => setAmbulanceNumber(text)}
             style={styles.input}
@@ -163,7 +164,7 @@ export default function SignUpScreen({ navigation }) {
           }}
         >
           <Text style={{ color: "gray", fontWeight: "600", fontSize: 14 }}>
-            Don't have an account?{" "}
+            You already have an account?{" "}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
             <Text style={{ color: "#f57c00", fontWeight: "600", fontSize: 14 }}>
@@ -181,6 +182,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imgContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 150,
+    height: 150,
+    marginTop: "10%",
+  },
+  backImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+  whiteSheet: {
+    width: "100%",
+    height: "70%",
+    position: "absolute",
+    bottom: 0,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 60,
+  },
+  form: {
+    flex: 1,
+    justifyContent: "center",
+    marginHorizontal: 30,
+    width: "75%",
+    height: "100%",
+    margin: 10,
+    marginBottom: "10%",
   },
   title: {
     fontSize: 36,
@@ -188,6 +220,7 @@ const styles = StyleSheet.create({
     color: "orange",
     alignSelf: "center",
     paddingBottom: 24,
+    paddingTop: 10,
   },
   input: {
     backgroundColor: "#F6F7FB",
@@ -198,29 +231,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 
-  backImage: {
-    width: "100%",
-    height: 200,
-    position: "absolute",
-    top: 10,
-    bottom: 10,
-    resizeMode: "center",
-  },
-  whiteSheet: {
-    width: "100%",
-    height: "75%",
-    position: "absolute",
-    bottom: 0,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 60,
-    top: 210,
-  },
-  form: {
-    flex: 1,
-    justifyContent: "center",
-    marginHorizontal: 30,
-    marginTop: 210,
-  },
   button: {
     backgroundColor: "#f57c00",
     height: 58,

@@ -30,7 +30,10 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image source={backImage} style={styles.backImage} />
+      <View style="imgContainer">
+        <Image source={backImage} style={styles.backImage} />
+      </View>
+
       <View style={styles.whiteSheet} />
       <SafeAreaView style={styles.form}>
         <Text style={styles.title}>Log In</Text>
@@ -88,6 +91,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+
   title: {
     fontSize: 36,
     fontWeight: "bold",
