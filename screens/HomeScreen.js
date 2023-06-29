@@ -4,28 +4,20 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Image,
   TextInput,
   Button,
 } from "react-native";
-import MapView, {
-  Marker,
-  PROVIDER_GOOGLE,
-  animateToRegion,
-  Callout,
-} from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { getAuth } from "firebase/auth";
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set } from "firebase/database";
+import { getDatabase } from "firebase/database";
 import {
   collection,
   addDoc,
-  orderBy,
   query,
   onSnapshot,
   getFirestore,
-  QuerySnapshot,
   getDocs,
   where,
 } from "firebase/firestore";
@@ -44,7 +36,6 @@ const apiKey = "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getFirestore(app);
-const db = getDatabase(app);
 
 //Add some locations for ambulances
 const addLocationToFirestore = async (
@@ -143,6 +134,7 @@ const HomeScreen = (props) => {
   const [routeDistance, setRouteDistance] = useState(null);
   const [routeDuration, setRouteDuration] = useState(null);
   const [distanceToAmbulance, setDistanceToAmbulance] = useState(null);
+  const [showRoute, setShowRoute] = useState(false);
 
   const mapRef = useRef(null);
   const [region, setRegion] = useState({
@@ -232,7 +224,6 @@ const HomeScreen = (props) => {
   }, []);
 
   // Search for a location
-
   const getInitialState = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -301,6 +292,10 @@ const HomeScreen = (props) => {
     setDistanceToAmbulance(distance);
   };
 
+  const toggleRoute = () => {
+    setShowRoute(!showRoute);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.containerSearch}>
@@ -358,11 +353,11 @@ const HomeScreen = (props) => {
             style={styles.map}
             region={region}
             showsUserLocation={true}
-            // followsUserLocation={true}
+            followsUserLocation={true}
             onRegionChange={onMapRegionChange}
             scrollEnabled={true}
             zoomEnabled={true}
-            // provider={PROVIDER_GOOGLE}
+            provider={PROVIDER_GOOGLE}
           >
             {/* <Marker coordinate={region} /> */}
             {pinPosition && (
@@ -388,9 +383,10 @@ const HomeScreen = (props) => {
                   latitude: ambulance.latitude,
                   longitude: ambulance.longitude,
                 }}
-                onPress={() =>
-                  zoomToLocation(ambulance.latitude, ambulance.longitude)
-                }
+                onPress={() => {
+                  zoomToLocation(ambulance.latitude, ambulance.longitude);
+                  toggleRoute();
+                }}
               >
                 <FontAwesome
                   name="ambulance"
@@ -405,7 +401,7 @@ const HomeScreen = (props) => {
                 </Callout>
               </Marker>
             ))}
-            {selectedLocation && (
+            {selectedLocation && showRoute && (
               <MapViewDirections
                 origin={{
                   latitude: currentLocation.coords.latitude,
@@ -425,6 +421,31 @@ const HomeScreen = (props) => {
               />
             )}
           </MapView>
+          <View>
+            <TouchableOpacity onPress={toggleRoute} style={styles.routeButton}>
+              <Text style={styles.routeButtonText}>
+                {showRoute ? "Hide Route" : "Show Route"}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.container2}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Chat")}
+                style={styles.chatButton}
+              >
+                <Entypo name="chat" size={24} color={colors.lightGray} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Notifications")}
+                style={styles.chatButton}
+              >
+                <Entypo
+                  name="notification"
+                  size={24}
+                  color={colors.lightGray}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
           <View style={styles.routeInfoContainer}>
             {routeDistance && routeDuration && (
               <Text>
@@ -433,21 +454,6 @@ const HomeScreen = (props) => {
                 Duration: {routeDuration.toFixed(0)} minutes
               </Text>
             )}
-          </View>
-
-          <View style={styles.container2}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Chat")}
-              style={styles.chatButton}
-            >
-              <Entypo name="chat" size={24} color={colors.lightGray} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Notifications")}
-              style={styles.chatButton}
-            >
-              <Entypo name="notification" size={24} color={colors.lightGray} />
-            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -475,7 +481,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    margin: 16,
+    margin: 10,
   },
   chatButton: {
     backgroundColor: colors.primary,
@@ -505,5 +511,21 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 10,
     borderRadius: 5,
+  },
+  routeButton: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    elevation: 4,
+  },
+
+  routeButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

@@ -15,6 +15,7 @@ import DeleteAccountScreen from "./screens/DeleteAccountScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
 import * as TaskManager from "expo-task-manager";
 import { registerRootComponent } from "expo";
+
 // import * as Font from "expo-font";
 
 const Stack = createStackNavigator();

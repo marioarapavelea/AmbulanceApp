@@ -4,8 +4,8 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
-import { TouchableOpacity, Text, Alert } from "react-native";
-import { GiftedChat, Bubble } from "react-native-gifted-chat";
+import { TouchableOpacity } from "react-native";
+import { GiftedChat } from "react-native-gifted-chat";
 import {
   collection,
   addDoc,
@@ -16,17 +16,16 @@ import {
 import { signOut } from "firebase/auth";
 import { auth, database, db } from "../database/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { ref, onValue, runTransaction } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import { AntDesign } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import colors from "../colors.js";
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState([]);
   const navigation = useNavigation();
   const [username, setUsername] = useState("");
-  const [firstUserAccepted, setFirstUserAccepted] = useState(false);
-  const [firstUserUsername, setFirstUserUsername] = useState("");
 
   const onSignOut = () => {
     signOut(auth).catch((error) => console.log("Error logging out: ", error));
@@ -48,6 +47,15 @@ export default function ChatScreen() {
             style={{ marginRight: 10 }}
           />
         </TouchableOpacity>
+      ),
+      headerLeft: () => (
+        <FontAwesome
+          name="chevron-left"
+          size={24}
+          color={colors.gray}
+          style={{ marginLeft: 15 }}
+          onPress={() => navigation.navigate("Home")}
+        ></FontAwesome>
       ),
     });
   }, [navigation]);
@@ -90,70 +98,9 @@ export default function ChatScreen() {
 
       const latestMessage = querySnapshot.docs[0].data();
       const { _id, user } = latestMessage;
-
-      // Display an alert with the received message and options to accept/decline
-      Alert.alert(
-        "New Message",
-        latestMessage.text,
-        [
-          {
-            text: "Accept",
-            onPress: () => handleAccept(_id, user),
-          },
-          {
-            text: "Decline",
-            onPress: () => handleDecline(_id),
-            style: "cancel",
-          },
-        ],
-        { cancelable: false }
-      );
     });
     return unsubscribe;
   }, []);
-
-  const handleAccept = (messageId, user) => {
-    if (!firstUserAccepted) {
-      setFirstUserAccepted(true);
-
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const uid = currentUser.uid;
-
-        // Retrieve username
-        const usernameRef = ref(db, `users/${uid}/username`);
-        onValue(usernameRef, (snapshot) => {
-          const usernameValue = snapshot.val();
-          setFirstUserUsername(usernameValue);
-
-          // Update the status of the first user to "busy" in the Realtime Database
-          const userStatusRef = ref(db, `users/${uid}/status`);
-          runTransaction(userStatusRef, (currentData) => {
-            if (currentData === "free") {
-              // Set the status to "busy" only if the current status is "free"
-              return "busy";
-            }
-            return currentData;
-          })
-            .then(() => {
-              console.log("First user status updated to busy");
-            })
-            .catch((error) => {
-              console.log("Error updating user status:", error);
-            });
-        });
-      }
-    }
-
-    // Handle the logic for accepting the message
-    console.log("Accepted message:", messageId);
-    console.log("First user username:", firstUserUsername);
-  };
-
-  const handleDecline = (messageId) => {
-    // Handle the logic for declining the message
-    console.log("Declined message:", messageId);
-  };
 
   const onSend = useCallback((messages = []) => {
     setMessages((previousMessages) =>
