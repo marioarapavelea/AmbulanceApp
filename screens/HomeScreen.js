@@ -39,7 +39,6 @@ import { AntDesign } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
 import colors from "../colors";
 import MapViewDirections from "react-native-maps-directions";
-import axios from "axios";
 
 const apiKey = "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY";
 const app = initializeApp(firebaseConfig);
@@ -113,6 +112,26 @@ const geocodeLocationByCoords = (lat, long) => {
   });
 };
 
+//Calculate the distance from the ambulance to the selected location
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in km
+  return distance.toFixed(2);
+};
+
+const deg2rad = (deg) => {
+  return deg * (Math.PI / 180);
+};
+
 const HomeScreen = (props) => {
   const navigation = useNavigation();
 
@@ -123,8 +142,7 @@ const HomeScreen = (props) => {
   const [pinPosition, setPinPosition] = useState(region);
   const [routeDistance, setRouteDistance] = useState(null);
   const [routeDuration, setRouteDuration] = useState(null);
-  const [distance, setDistance] = useState(null);
-  const [duration, setDuration] = useState(null);
+  const [distanceToAmbulance, setDistanceToAmbulance] = useState(null);
 
   const mapRef = useRef(null);
   const [region, setRegion] = useState({
@@ -238,11 +256,8 @@ const HomeScreen = (props) => {
 
   const getCoordsFromName = async (loc) => {
     try {
-      // const response = await fetch(
-      //   `https://maps.googleapis.com/maps/api/geocode/json?address=${loc}&key=${apiKey}`
-      // );
-      const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${currentLocation.coords.latitude},${currentLocation.coords.longitude}&destinations=${lat},${lng}&key=${apiKey}`
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${loc}&key=${apiKey}`
       );
       const data = await response.json();
       const { lat, lng } = data.results[0].geometry.location;
@@ -266,11 +281,6 @@ const HomeScreen = (props) => {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
-
-      const { distance, duration } = response.data.rows[0].elements[0];
-
-      setDistance(distance.text);
-      setDuration(duration.text);
     } catch (error) {
       console.log("Error retrieving location coordinates:", error);
     }
@@ -279,6 +289,16 @@ const HomeScreen = (props) => {
   const onMapRegionChange = (region) => {
     setRegion(region);
     // setPinPosition(region);
+  };
+  const handleAmbulancePress = (ambulance) => {
+    setSelectedAmbulance(ambulance);
+    const distance = calculateDistance(
+      selectedLocation.latitude,
+      selectedLocation.longitude,
+      ambulance.latitude,
+      ambulance.longitude
+    );
+    setDistanceToAmbulance(distance);
   };
 
   return (
