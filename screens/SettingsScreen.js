@@ -71,6 +71,7 @@ const SettingsScreen = () => {
   const [hospital, setHospital] = useState("");
   const [ambulanceNumber, setAmbulanceNumber] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [status, setStatus] = useState("");
 
   // For edit
   const [newCity, setNewCity] = useState("");
@@ -80,6 +81,7 @@ const SettingsScreen = () => {
   const [newAmbulanceNumber, setNewAmbulanceNumber] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
+  const [newStatus, setNewStatus] = useState("");
 
   useEffect(() => {
     navigation.setOptions({
@@ -89,7 +91,7 @@ const SettingsScreen = () => {
           size={24}
           color={colors.gray}
           style={{ marginLeft: 15 }}
-          onPress={() => navigation.navigate("Home")}
+          onPress={() => navigation.goBack()}
         ></FontAwesome>
       ),
     });
@@ -148,6 +150,13 @@ const SettingsScreen = () => {
           const fullNameValue = snapshot.val();
           setFullName(fullNameValue);
         });
+
+        // Retrieve status
+        const statusRef = ref(db, `users/${uid}/status`);
+        onValue(statusRef, (snapshot) => {
+          const statusValue = snapshot.val();
+          setStatus(statusValue);
+        });
       }
     });
 
@@ -184,6 +193,9 @@ const SettingsScreen = () => {
 
       if (newFullName) {
         updates.fullName = newFullName;
+      }
+      if (newStatus) {
+        updates.status = newStatus;
       }
 
       update(userRef, updates)
@@ -252,14 +264,19 @@ const SettingsScreen = () => {
             value={newAmbulanceNumber}
             onChangeText={(text) => setNewAmbulanceNumber(text)}
           />
+          <UserInfoField
+            iconName="check-circle"
+            info={`Status : ${status}`}
+            editable={true}
+            value={newStatus}
+            onChangeText={(text) => setNewStatus(text)}
+          />
         </View>
         <View
           style={{
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 60,
-            // marginLeft: 10,
-            // marginRight: 10,
+            marginBottom: 10,
           }}
         >
           <TouchableOpacity style={styles.button} onPress={handleEditProfile}>
@@ -268,8 +285,7 @@ const SettingsScreen = () => {
                 fontWeight: "bold",
                 color: "#fff",
                 fontSize: 18,
-                marginLeft: 10,
-                marginRight: 10,
+                margin: 15,
               }}
             >
               {" "}
@@ -375,7 +391,7 @@ const styles = StyleSheet.create({
   info_details: {
     flex: 1,
     padding: 25,
-    paddingBottom: 5,
+    paddingBottom: 10,
     alignItems: "left",
     justifyContent: "center",
   },
@@ -388,6 +404,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
+    marginTop: 10,
   },
   infoContainer: {
     flex: 1,
@@ -403,6 +420,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     paddingVertical: 5,
     paddingHorizontal: 10,
+    marginBottom: 10,
   },
   editIcon: {
     marginLeft: 10,
@@ -416,7 +434,6 @@ const styles = StyleSheet.create({
   changePass: {
     color: "#888",
     fontSize: 16,
-    // padding: 20,
     marginTop: 10,
   },
 });

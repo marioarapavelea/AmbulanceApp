@@ -9,9 +9,9 @@ import {
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { getDatabase, ref, onValue, set } from "firebase/database";
 import {
   collection,
   addDoc,
@@ -36,40 +36,7 @@ const apiKey = "AIzaSyC3zC4Dx5XZgC-TgdT-vVwNEBJbLZ6sJeY";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getFirestore(app);
-
-//Add some locations for ambulances
-const addLocationToFirestore = async (
-  ambulanceNumber,
-  latitude,
-  longitude,
-  status
-) => {
-  const locationsRef = collection(database, "locations");
-  // Check if the location already exists
-  const querySnapshot = await getDocs(
-    query(locationsRef, where("ambulanceNumber", "==", ambulanceNumber))
-  );
-
-  if (querySnapshot.empty) {
-    // Location doesn't exist, add it to Firestore
-    await addDoc(locationsRef, {
-      ambulanceNumber: ambulanceNumber,
-      latitude: latitude,
-      longitude: longitude,
-      status: status,
-    });
-    console.log("Location added to Firestore");
-  } else {
-    console.log("Location already exists in Firestore");
-  }
-};
-
-addLocationToFirestore("A001", 46.770439, 23.591423, "free");
-addLocationToFirestore("A002", 46.7609689, 23.5648915, "busy");
-addLocationToFirestore("A003", 46.763968, 23.563625, "busy");
-addLocationToFirestore("A004", 49.763968, 25.563625, "free");
-addLocationToFirestore("A005", 46.758798, 23.551193, "free");
-addLocationToFirestore("A006", 46.762507, 23.557183, "free");
+const db = getDatabase(app);
 
 //Get the location
 const getLocation = () => {
@@ -145,13 +112,16 @@ const HomeScreen = (props) => {
   });
 
   //Ambulances simulation
-  const fetchLocations = async () => {
-    const locationsRef = collection(database, "locations");
-    onSnapshot(locationsRef, (snapshot) => {
-      const locationsData = snapshot.docs.map((doc) => doc.data());
-      setLocations(locationsData);
+  const fetchLocations = () => {
+    const locationsRef = ref(db, "users");
+    onValue(locationsRef, (snapshot) => {
+      const locationsData = snapshot.val();
+      // Convert the object of locationsData to an array
+      const locationsArray = Object.values(locationsData);
+      setLocations(locationsArray);
     });
   };
+
   useEffect(() => {
     fetchLocations();
   }, []);

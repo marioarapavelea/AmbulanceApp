@@ -41,15 +41,7 @@ const ProfileScreen = () => {
   const [hospital, setHospital] = useState("");
   const [ambulanceNumber, setAmbulanceNumber] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-
-  // For edit
-  const [newCity, setNewCity] = useState("");
-  const [newPhoneNumber, setNewPhoneNumber] = useState("");
-  const [newUsername, setNewUsername] = useState("");
-  const [newHospital, setNewHospital] = useState("");
-  const [newAmbulanceNumber, setNewAmbulanceNumber] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newFullName, setNewFullName] = useState("");
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     navigation.setOptions({
@@ -120,6 +112,13 @@ const ProfileScreen = () => {
           const fullNameValue = snapshot.val();
           setFullName(fullNameValue);
         });
+
+        // Retrieve status
+        const statusRef = ref(db, `users/${uid}/status`);
+        onValue(statusRef, (snapshot) => {
+          const statusValue = snapshot.val();
+          setStatus(statusValue);
+        });
       }
     });
 
@@ -140,51 +139,22 @@ const ProfileScreen = () => {
 
       <View style={styles.whiteSheet}>
         <View style={styles.info_details}>
-          <UserInfoField
-            iconName="user"
-            info={username}
-            editable={true}
-            value={newUsername}
-            onChangeText={(text) => setNewUsername(text)}
-          />
+          <UserInfoField iconName="user" info={username} />
           <UserInfoField iconName="envelope" info={auth.currentUser?.email} />
-          <UserInfoField
-            iconName="phone"
-            info={phoneNumber}
-            editable={true}
-            // value={newPhoneNumber}
-            value={newPhoneNumber}
-            onChangeText={(text) => setNewPhoneNumber(text)}
-          />
-          <UserInfoField
-            iconName="map-marker"
-            info={city}
-            editable={true}
-            value={newPhoneNumber}
-            onChangeText={(text) => setNewPhoneNumber(text)}
-          />
-          <UserInfoField
-            iconName="hospital-o"
-            info={hospital}
-            editable={true}
-            value={newHospital}
-            onChangeText={(text) => setNewHospital(text)}
-          />
+          <UserInfoField iconName="phone" info={phoneNumber} />
+          <UserInfoField iconName="map-marker" info={city} />
+          <UserInfoField iconName="hospital-o" info={hospital} />
           <UserInfoField
             iconName="hashtag"
             info={`Ambulance Nr. : ${ambulanceNumber}`}
-            editable={true}
-            value={newAmbulanceNumber}
-            onChangeText={(text) => setNewAmbulanceNumber(text)}
           />
+          <UserInfoField iconName="check-circle" info={`Status : ${status}`} />
         </View>
         <View
           style={{
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 60,
-            // marginLeft: 10,
-            // marginRight: 10,
           }}
         >
           <TouchableOpacity
