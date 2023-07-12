@@ -30,7 +30,7 @@ const AuthenticatedUserProvider = ({ children }) => {
   );
 };
 
-function ChatStack() {
+function AppStack() {
   return (
     <Stack.Navigator defaultScreenOptions={HomeScreen}>
       <Stack.Screen
@@ -101,7 +101,7 @@ function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {user ? <ChatStack /> : <AuthStack />}
+      {user ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }

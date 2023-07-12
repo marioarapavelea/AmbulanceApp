@@ -39,36 +39,36 @@ const database = getFirestore(app);
 const db = getDatabase(app);
 
 //Get the location
-const getLocation = () => {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (data) => resolve(data.coords),
-      (err) => reject(err)
-    );
-  });
-};
+// const getLocation = () => {
+//   return new Promise((resolve, reject) => {
+//     navigator.geolocation.getCurrentPosition(
+//       (data) => resolve(data.coords),
+//       (err) => reject(err)
+//     );
+//   });
+// };
 
-const geocodeLocationByName = (locationName) => {
-  return new Promise((resolve, reject) => {
-    Geocoder.from(locationName)
-      .then((json) => {
-        const addressComponent = json.results[0].address_components[0];
-        resolve(addressComponent);
-      })
-      .catch((error) => reject(error));
-  });
-};
+// const geocodeLocationByName = (locationName) => {
+//   return new Promise((resolve, reject) => {
+//     Geocoder.from(locationName)
+//       .then((json) => {
+//         const addressComponent = json.results[0].address_components[0];
+//         resolve(addressComponent);
+//       })
+//       .catch((error) => reject(error));
+//   });
+// };
 
-const geocodeLocationByCoords = (lat, long) => {
-  return new Promise((resolve, reject) => {
-    Geocoder.from(lat, long)
-      .then((json) => {
-        const addressComponent = json.results[0].address_components[0];
-        resolve(addressComponent);
-      })
-      .catch((error) => reject(error));
-  });
-};
+// const geocodeLocationByCoords = (lat, long) => {
+//   return new Promise((resolve, reject) => {
+//     Geocoder.from(lat, long)
+//       .then((json) => {
+//         const addressComponent = json.results[0].address_components[0];
+//         resolve(addressComponent);
+//       })
+//       .catch((error) => reject(error));
+//   });
+// };
 
 //Calculate the distance from the ambulance to the selected location
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -184,6 +184,13 @@ const HomeScreen = (props) => {
       let yourCurrentLocation = await Location.getCurrentPositionAsync({});
       setCurrentLocation(yourCurrentLocation);
 
+      const userId = auth.currentUser.uid;
+      const userLocationRef = ref(db, `users/${userId}/location`);
+      set(userLocationRef, {
+        latitude: yourCurrentLocation.coords.latitude,
+        longitude: yourCurrentLocation.coords.longitude,
+      });
+
       console.log("Location:");
       console.log(currentLocation);
       setPinPosition({
@@ -229,13 +236,7 @@ const HomeScreen = (props) => {
         longitudeDelta: 0.0421,
       });
       setPinPosition({ latitude: lat, longitude: lng });
-      // mapRef.current.animateToRegion({
-      //   latitude: lat,
-      //   longitude: lng,
-      //   latitudeDelta: 0.0922,
-      //   longitudeDelta: 0.0421,
-      // });
-      setSelectedLocation({ latitude: lat, longitude: lng }); // Set the selected location
+      setSelectedLocation({ latitude: lat, longitude: lng });
       mapRef.current.animateToRegion({
         latitude: lat,
         longitude: lng,

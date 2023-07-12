@@ -37,10 +37,34 @@ export default function SignUpScreen({ navigation }) {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getDatabase(app);
+  // if (
+  //   email === "" ||
+  //   password === "" ||
+  //   fullName === "" ||
+  //   username === "" ||
+  //   city === "" ||
+  //   phoneNumber === "" ||
+  //   hospital === ""
+  // ) {
+  //   alert("Please fill in all required fields");
+  //   return;
+  // }
 
   const onHandleSignup = () => {
     if (password !== confirmPassword) {
       alert("Passwords do not match");
+      return;
+    }
+    if (
+      email === "" ||
+      password === "" ||
+      fullName === "" ||
+      username === "" ||
+      city === "" ||
+      phoneNumber === "" ||
+      hospital === ""
+    ) {
+      alert("Please fill in all required fields");
       return;
     }
 

@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  Button,
-  TextInput,
-  Image,
-  SafeAreaView,
-  TouchableOpacity,
-  StatusBar,
-  Alert,
-} from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import colors from "../colors";
 import { FontAwesome } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -186,7 +175,8 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
+    backgroundColor: "orange",
   },
   title: {
     fontSize: 36,
@@ -227,16 +217,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     alignItems: "center",
   },
-  // whiteSheet: {
-  //   width: "100%",
-  //   height: "75%",
-  //   position: "absolute",
-  //   bottom: 0,
-  //   backgroundColor: "#fff",
 
-  //   // top: 210,
-  //   borderTopLeftRadius: 60,
-  // },
   whiteSheet: {
     width: "100%",
     height: "75%",
